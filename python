@@ -1,0 +1,52 @@
+import socket
+import ipaddress
+import threading
+
+def scan_port(ip, port, results):
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.settimeout(0.5)
+            if s.connect_ex((ip, port)) == 0:
+                results.append(f"Open port {port} found on {ip}")
+    except:
+        pass
+
+def network_scan(network, ports):
+    results = []
+    print(f"Scanning network: {network}")
+    threads = []
+    
+    for ip in ipaddress.IPv4Network(network, strict=False):
+        for port in ports:
+            thread = threading.Thread(target=scan_port, args=(str(ip), port, results))
+            threads.append(thread)
+            thread.start()
+    
+    for thread in threads:
+        thread.join()
+    
+    print("Scan completed.")
+    return results
+
+def save_results(results, filename="scan_results.txt"):
+    with open(filename, "w") as file:
+        file.writelines(result + "\n" for result in results)
+    print(f"Results saved to {filename}")
+
+if __name__ == "__main__":
+    print("Welcome to the Enhanced Network Scanner!")
+    network_range = input("Enter the network range (e.g., 192.168.1.0/24): ")
+    ports_to_scan = input("Enter the ports to scan (comma-separated, e.g., 22,80,443): ")
+    ports_to_scan = [int(port.strip()) for port in ports_to_scan.split(",")]
+    
+    results = network_scan(network_range, ports_to_scan)
+    
+    if results:
+        print("\nOpen ports found:")
+        for result in results:
+            print(result)
+        save_option = input("\nDo you want to save the results to a file? (yes/no): ").strip().lower()
+        if save_option == "yes":
+            save_results(results)
+    else:
+        print("\nNo open ports found.")
